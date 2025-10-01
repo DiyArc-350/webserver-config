@@ -312,7 +312,7 @@
                 <div class="input-group">
                     <label>HLS Stream URL (.m3u8)</label>
                     <div class="input-wrapper">
-                        <input type="text" id="hls-url" placeholder="http://your-server/vod/hls/video/master.m3u8">
+                        <input type="text" id="hls-url" placeholder="Enter HLS stream URL">
                         <button onclick="loadHLS()">▶ Play</button>
                     </div>
                 </div>
@@ -341,7 +341,7 @@
                 <div class="input-group">
                     <label>DASH Stream URL (.mpd)</label>
                     <div class="input-wrapper">
-                        <input type="text" id="dash-url" placeholder="http://your-server/vod/dash/video/manifest.mpd">
+                        <input type="text" id="dash-url" placeholder="Enter DASH stream URL">
                         <button onclick="loadDASH()">▶ Play</button>
                     </div>
                 </div>
@@ -452,7 +452,7 @@
 
         // Auto-detect and update server IP
         window.addEventListener('load', function () {
-            const currentHost = window.location.hostname;
+            const currentHost = window.location.hostname || '172.22.238.74';
             const hlsUrl = document.getElementById('hls-url');
             const dashUrl = document.getElementById('dash-url');
 
