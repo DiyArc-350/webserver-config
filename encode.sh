@@ -126,8 +126,8 @@ ffmpeg -i "${INPUT_ABS}" \
   -seg_duration 6 \
   -use_timeline 1 \
   -use_template 1 \
-  -init_seg_name "${VIDEO_NAME}/init_\$RepresentationID\$.m4s" \
-  -media_seg_name "${VIDEO_NAME}/segment_\$RepresentationID\$_\$Number\$.m4s" \
+  -init_seg_name "init_\$RepresentationID\$.m4s" \
+  -media_seg_name "segment_\$RepresentationID\$_\$Number\$.m4s" \
   -adaptation_sets "id=0,streams=v id=1,streams=a" \
   "${VIDEO_NAME}/manifest.mpd"
 
