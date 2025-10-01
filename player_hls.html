@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streaming Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-top: 56.25%;
+            background: #000;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls-section {
+            padding: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #a78bfa;
+            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        button {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .status-box {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border-left: 4px solid #a78bfa;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .status-box strong {
+            color: #a78bfa;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .info-card h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #a78bfa;
+        }
+
+        .info-card p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .input-wrapper {
+                flex-direction: column;
+            }
+
+            .controls-section {
+                padding: 20px;
+            }
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 16px;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #a78bfa;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎬 Video Streaming Platform</h1>
+    </div>
+
+    <div class="container">
+        <div class="info-card">
+            <h3>📡 Native HTML5 Video Player</h3>
+            <p>
+                This player uses native HTML5 video capabilities. For HLS streams (.m3u8), it works best on Safari/iOS
+                which has built-in support.
+                For other browsers, you can directly play MP4 files. Enter your video URL below and click Play.
+            </p>
+        </div>
+
+        <div class="player-card">
+            <div class="card-header">
+                <h2>
+                    <span>🎥</span>
+                    Video Player
+                    <span class="badge">HTML5</span>
+                </h2>
+            </div>
+            <div class="video-wrapper">
+                <video id="video-player" controls></video>
+                <div class="loading" id="video-loading">
+                    <div class="spinner"></div>
+                    <div>Loading stream...</div>
+                </div>
+            </div>
+            <div class="controls-section">
+                <div class="input-group">
+                    <label>Video Stream URL (.m3u8 or .mp4)</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="video-url" placeholder="Enter video stream URL">
+                        <button onclick="loadVideo()">▶ Play</button>
+                    </div>
+                </div>
+                <div class="status-box" id="video-status">
+                    <strong>Ready</strong> • Enter a video URL and click Play
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(show) {
+            document.getElementById('video-loading').style.display = show ? 'block' : 'none';
+        }
+
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('video-status');
+            status.innerHTML = isError
+                ? `<strong style="color: #ff6b6b;">Error</strong> • ${message}`
+                : `<strong>Success</strong> • ${message}`;
+        }
+
+        function loadVideo() {
+            const video = document.getElementById('video-player');
+            const url = document.getElementById('video-url').value.trim();
+
+            if (!url) {
+                updateStatus('Please enter a valid video URL', true);
+                return;
+            }
+
+            showLoading(true);
+            video.src = url;
+
+            video.addEventListener('loadedmetadata', function () {
+                showLoading(false);
+                updateStatus('Video loaded successfully');
+            }, { once: true });
+
+            video.addEventListener('error', function (e) {
+                showLoading(false);
+                let errorMsg = 'Failed to load video';
+                if (video.error) {
+                    switch (video.error.code) {
+                        case 1: errorMsg = 'Video loading aborted'; break;
+                        case 2: errorMsg = 'Network error while loading video'; break;
+                        case 3: errorMsg = 'Video format not supported or corrupted'; break;
+                        case 4: errorMsg = 'Video source not found'; break;
+                    }
+                }
+                updateStatus(errorMsg, true);
+            }, { once: true });
+
+            video.play().catch(err => {
+                showLoading(false);
+                updateStatus('Cannot play video: ' + err.message, true);
+            });
+        }
+
+        // Auto-detect and update server IP
+        window.addEventListener('load', function () {
+            const currentHost = window.location.hostname || '172.22.238.74';
+            const videoUrl = document.getElementById('video-url');
+            videoUrl.value = `http://${currentHost}/vod/hls/video/360p/playlist.m3u8`;
+        });
+    </script>
+</body>
+
+</html>
