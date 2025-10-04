@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# DASH Adaptive Bitrate Video Encoding Script
+# DASH Video Encoding Script with 4K Support (H.265)
 # Usage: ./encode_dash.sh input.mp4 output_name
-# Run this script in your target directory (e.g., /var/www/videos/dash/)
+# Run this from /var/www/videos/
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <input_video> <output_name>"
-    echo "Example: $0 example.mp4 my_video"
+    echo "Example: $0 source/video.mp4 my_video"
     exit 1
 fi
 
@@ -18,67 +18,85 @@ if [ ! -f "${INPUT_VIDEO}" ]; then
     exit 1
 fi
 
-# Create output directory in current location
+# Get absolute path of input video
+INPUT_ABS=$(realpath "${INPUT_VIDEO}")
+
+echo "=========================================="
+echo "DASH ENCODING (H.265) with 4K"
+echo "=========================================="
+echo "Input: ${INPUT_ABS}"
+echo "Output name: ${VIDEO_NAME}"
+echo "=========================================="
+
+###########################################
+# ENCODE DASH (H.265)
+###########################################
+echo ""
+echo "Encoding DASH (H.265) with 4K..."
+echo "=========================================="
+
+cd dash/ || { echo "Error: dash/ directory not found!"; exit 1; }
+
 mkdir -p "${VIDEO_NAME}"
 
-echo "=========================================="
-echo "Starting DASH Encoding"
-echo "Input: ${INPUT_VIDEO}"
-echo "Output: ./${VIDEO_NAME}/"
-echo "=========================================="
-
-###########################################
-# DASH ENCODING (VP9/WebM)
-###########################################
-echo ""
-echo "Encoding DASH video streams..."
-
-# Encode video tracks
-ffmpeg -i "${INPUT_VIDEO}" \
-  -c:v libvpx-vp9 -keyint_min 150 -g 150 -tile-columns 4 -frame-parallel 1 -speed 4 -threads 8 \
-  -an -vf scale=640:360 -b:v 800k -f webm -dash 1 "${VIDEO_NAME}/video_360p_800k.webm" \
-  -an -vf scale=854:480 -b:v 1400k -f webm -dash 1 "${VIDEO_NAME}/video_480p_1400k.webm" \
-  -an -vf scale=1280:720 -b:v 2800k -f webm -dash 1 "${VIDEO_NAME}/video_720p_2800k.webm" \
-  -an -vf scale=1920:1080 -b:v 5000k -f webm -dash 1 "${VIDEO_NAME}/video_1080p_5000k.webm"
-
-echo ""
-echo "Encoding DASH audio stream..."
-
-# Encode audio track
-ffmpeg -i "${INPUT_VIDEO}" -c:a libopus -b:a 128k -vn -f webm -dash 1 "${VIDEO_NAME}/audio_128k.webm"
-
-echo ""
-echo "Creating DASH manifest..."
-
-# Create DASH manifest
-ffmpeg \
-  -f webm_dash_manifest -i "${VIDEO_NAME}/video_360p_800k.webm" \
-  -f webm_dash_manifest -i "${VIDEO_NAME}/video_480p_1400k.webm" \
-  -f webm_dash_manifest -i "${VIDEO_NAME}/video_720p_2800k.webm" \
-  -f webm_dash_manifest -i "${VIDEO_NAME}/video_1080p_5000k.webm" \
-  -f webm_dash_manifest -i "${VIDEO_NAME}/audio_128k.webm" \
-  -c copy \
-  -map 0 -map 1 -map 2 -map 3 -map 4 \
-  -f webm_dash_manifest \
-  -adaptation_sets "id=0,streams=0,1,2,3 id=1,streams=4" \
+ffmpeg -y -i "${INPUT_ABS}" \
+  -filter_complex \
+  "[0:v]split=5[v1][v2][v3][v4][v5]; \
+   [v1]scale=w=640:h=360[v360p]; \
+   [v2]scale=w=854:h=480[v480p]; \
+   [v3]scale=w=1280:h=720[v720p]; \
+   [v4]scale=w=1920:h=1080[v1080p]; \
+   [v5]scale=w=3840:h=2160[v2160p]" \
+  \
+  -map "[v360p]" -c:v:0 libx265 -b:v:0 600k -maxrate:v:0 660k -bufsize:v:0 1200k \
+    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  -map "[v480p]" -c:v:1 libx265 -b:v:1 1000k -maxrate:v:1 1100k -bufsize:v:1 2000k \
+    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  -map "[v720p]" -c:v:2 libx265 -b:v:2 2000k -maxrate:v:2 2200k -bufsize:v:2 4000k \
+    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  -map "[v1080p]" -c:v:3 libx265 -b:v:3 3500k -maxrate:v:3 3850k -bufsize:v:3 7000k \
+    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  -map "[v2160p]" -c:v:4 libx265 -b:v:4 8000k -maxrate:v:4 8800k -bufsize:v:4 16000k \
+    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  \
+  -map 0:a -c:a aac -b:a 128k \
+  \
+  -f dash \
+  -seg_duration 6 \
+  -use_timeline 1 \
+  -use_template 1 \
+  -single_file 0 \
+  -write_prft 1 \
+  -ldash 0 \
+  -streaming 0 \
+  -init_seg_name "init_\$RepresentationID\$.m4s" \
+  -media_seg_name "segment_\$RepresentationID\$_\$Number\$.m4s" \
+  -adaptation_sets "id=0,streams=v id=1,streams=a" \
   "${VIDEO_NAME}/manifest.mpd"
 
-echo "✓ DASH encoding complete!"
+if [ $? -eq 0 ]; then
+    echo "DASH encoding complete!"
+else
+    echo "DASH encoding failed!"
+    exit 1
+fi
 
+cd ..
+
+###########################################
+# SUMMARY
+###########################################
 echo ""
 echo "=========================================="
-echo "Encoding Complete!"
+echo "DASH ENCODING COMPLETE!"
 echo "=========================================="
 echo ""
-echo "Output directory: ./${VIDEO_NAME}/"
+echo "Output Location:"
 echo ""
-echo "Manifest file: ${VIDEO_NAME}/manifest.mpd"
+echo "DASH (H.265/AAC):"
+echo "  Manifest: dash/${VIDEO_NAME}/manifest.mpd"
+echo "  URL: http://your-server/vod/dash/${VIDEO_NAME}/manifest.mpd"
 echo ""
-echo "Quality levels available:"
-echo "  - 1080p (5000 kbps) - ${VIDEO_NAME}/video_1080p_5000k.webm"
-echo "  - 720p  (2800 kbps) - ${VIDEO_NAME}/video_720p_2800k.webm"
-echo "  - 480p  (1400 kbps) - ${VIDEO_NAME}/video_480p_1400k.webm"
-echo "  - 360p  (800 kbps)  - ${VIDEO_NAME}/video_360p_800k.webm"
-echo "  - Audio (128 kbps)  - ${VIDEO_NAME}/audio_128k.webm"
+echo "Quality levels: 360p, 480p, 720p, 1080p, 2160p (4K)"
 echo ""
 echo "=========================================="
