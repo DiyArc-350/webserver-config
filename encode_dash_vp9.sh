@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DASH Video Encoding Script with 4K Support (H.265)
+# DASH Video Encoding Script with 4K Support (VP9)
 # Usage: ./encode_dash.sh input.mp4 output_name
 # Run this from /var/www/videos/
 
@@ -22,17 +22,17 @@ fi
 INPUT_ABS=$(realpath "${INPUT_VIDEO}")
 
 echo "=========================================="
-echo "DASH ENCODING (H.265) with 4K"
+echo "DASH ENCODING (VP9) with 4K"
 echo "=========================================="
 echo "Input: ${INPUT_ABS}"
 echo "Output name: ${VIDEO_NAME}"
 echo "=========================================="
 
 ###########################################
-# ENCODE DASH (H.265)
+# ENCODE DASH (VP9)
 ###########################################
 echo ""
-echo "Encoding DASH (H.265) with 4K..."
+echo "Encoding DASH (VP9) with 4K..."
 echo "=========================================="
 
 cd dash/ || { echo "Error: dash/ directory not found!"; exit 1; }
@@ -48,18 +48,23 @@ ffmpeg -y -i "${INPUT_ABS}" \
    [v4]scale=w=1920:h=1080[v1080p]; \
    [v5]scale=w=3840:h=2160[v2160p]" \
   \
-  -map "[v360p]" -c:v:0 libx265 -b:v:0 600k -maxrate:v:0 660k -bufsize:v:0 1200k \
-    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
-  -map "[v480p]" -c:v:1 libx265 -b:v:1 1000k -maxrate:v:1 1100k -bufsize:v:1 2000k \
-    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
-  -map "[v720p]" -c:v:2 libx265 -b:v:2 2000k -maxrate:v:2 2200k -bufsize:v:2 4000k \
-    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
-  -map "[v1080p]" -c:v:3 libx265 -b:v:3 3500k -maxrate:v:3 3850k -bufsize:v:3 7000k \
-    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
-  -map "[v2160p]" -c:v:4 libx265 -b:v:4 8000k -maxrate:v:4 8800k -bufsize:v:4 16000k \
-    -g 48 -keyint_min 48 -preset medium -x265-params "scenecut=0" \
+  -map "[v360p]" -c:v:0 libvpx-vp9 -b:v:0 500k -maxrate:v:0 550k -bufsize:v:0 1000k \
+    -g 48 -keyint_min 48 -tile-columns 0 -frame-parallel 0 -auto-alt-ref 1 -lag-in-frames 25 \
+    -row-mt 1 -speed 2 -quality good \
+  -map "[v480p]" -c:v:1 libvpx-vp9 -b:v:1 800k -maxrate:v:1 880k -bufsize:v:1 1600k \
+    -g 48 -keyint_min 48 -tile-columns 1 -frame-parallel 0 -auto-alt-ref 1 -lag-in-frames 25 \
+    -row-mt 1 -speed 2 -quality good \
+  -map "[v720p]" -c:v:2 libvpx-vp9 -b:v:2 1600k -maxrate:v:2 1760k -bufsize:v:2 3200k \
+    -g 48 -keyint_min 48 -tile-columns 2 -frame-parallel 0 -auto-alt-ref 1 -lag-in-frames 25 \
+    -row-mt 1 -speed 2 -quality good \
+  -map "[v1080p]" -c:v:3 libvpx-vp9 -b:v:3 2800k -maxrate:v:3 3080k -bufsize:v:3 5600k \
+    -g 48 -keyint_min 48 -tile-columns 2 -frame-parallel 0 -auto-alt-ref 1 -lag-in-frames 25 \
+    -row-mt 1 -speed 2 -quality good \
+  -map "[v2160p]" -c:v:4 libvpx-vp9 -b:v:4 6000k -maxrate:v:4 6600k -bufsize:v:4 12000k \
+    -g 48 -keyint_min 48 -tile-columns 3 -frame-parallel 0 -auto-alt-ref 1 -lag-in-frames 25 \
+    -row-mt 1 -speed 2 -quality good \
   \
-  -map 0:a -c:a aac -b:a 128k \
+  -map 0:a -c:a libopus -b:a 128k \
   \
   -f dash \
   -seg_duration 6 \
@@ -69,8 +74,8 @@ ffmpeg -y -i "${INPUT_ABS}" \
   -write_prft 1 \
   -ldash 0 \
   -streaming 0 \
-  -init_seg_name "init_\$RepresentationID\$.m4s" \
-  -media_seg_name "segment_\$RepresentationID\$_\$Number\$.m4s" \
+  -init_seg_name "init_\$RepresentationID\$.webm" \
+  -media_seg_name "segment_\$RepresentationID\$_\$Number\$.webm" \
   -adaptation_sets "id=0,streams=v id=1,streams=a" \
   "${VIDEO_NAME}/manifest.mpd"
 
@@ -93,10 +98,11 @@ echo "=========================================="
 echo ""
 echo "Output Location:"
 echo ""
-echo "DASH (H.265/AAC):"
+echo "DASH (VP9/Opus):"
 echo "  Manifest: dash/${VIDEO_NAME}/manifest.mpd"
 echo "  URL: http://your-server/vod/dash/${VIDEO_NAME}/manifest.mpd"
 echo ""
 echo "Quality levels: 360p, 480p, 720p, 1080p, 2160p (4K)"
 echo ""
+echo "Note: VP9 encoding is slower but produces smaller files"
 echo "=========================================="
