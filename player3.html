@@ -159,35 +159,6 @@
             transform: translateY(0);
         }
 
-        select {
-            width: 100%;
-            padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            color: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        select:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.15);
-            border-color: #a78bfa;
-            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
-        }
-
-        select:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        select option {
-            background: #1e293b;
-            color: #fff;
-        }
-
         .status-box {
             margin-top: 20px;
             padding: 16px 20px;
@@ -305,7 +276,7 @@
                     <li>H.264 codec (MP4)</li>
                     <li>Works on ALL devices</li>
                     <li>iOS/Safari native support</li>
-                    <li>4 quality levels (360p-1080p)</li>
+                    <li>5 quality levels (360p-2160p)</li>
                     <li>Best universal compatibility</li>
                 </ul>
             </div>
@@ -313,11 +284,11 @@
             <div class="info-card">
                 <h3>🚀 DASH Streaming</h3>
                 <ul>
-                    <li>VP9 codec (WebM)</li>
-                    <li>Chrome/Firefox/Edge only</li>
-                    <li>Better compression ratio</li>
-                    <li>20-30% smaller file size</li>
-                    <li>Not supported on Safari/iOS</li>
+                    <li>H.265/HEVC codec (MP4)</li>
+                    <li>Chrome/Firefox/Edge support</li>
+                    <li>Better compression than H.264</li>
+                    <li>30-50% smaller file size</li>
+                    <li>5 quality levels (360p-2160p 4K)</li>
                 </ul>
             </div>
         </div>
@@ -345,12 +316,6 @@
                         <button onclick="loadHLS()">▶ Play</button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label>Quality Selection</label>
-                    <select id="hls-quality" onchange="changeHLSQuality()" disabled>
-                        <option value="-1">Auto</option>
-                    </select>
-                </div>
                 <div class="status-box" id="hls-status">
                     <strong>Ready</strong> • Enter an HLS stream URL and click Play
                 </div>
@@ -362,7 +327,7 @@
                 <h2>
                     <span>📺</span>
                     DASH Player
-                    <span class="badge badge-green">VP9</span>
+                    <span class="badge badge-green">H.265</span>
                 </h2>
             </div>
             <div class="video-wrapper">
@@ -379,12 +344,6 @@
                         <input type="text" id="dash-url" placeholder="Enter DASH stream URL">
                         <button onclick="loadDASH()">▶ Play</button>
                     </div>
-                </div>
-                <div class="input-group">
-                    <label>Quality Selection</label>
-                    <select id="dash-quality" onchange="changeDASHQuality()" disabled>
-                        <option value="-1">Auto</option>
-                    </select>
                 </div>
                 <div class="status-box" id="dash-status">
                     <strong>Ready</strong> • Enter a DASH stream URL and click Play
@@ -408,35 +367,6 @@
                 : `<strong>Success</strong> • ${message}`;
         }
 
-        function populateHLSQualities(levels) {
-            const select = document.getElementById('hls-quality');
-            select.innerHTML = '<option value="-1">Auto</option>';
-
-            levels.forEach((level, index) => {
-                const height = level.height;
-                const bitrate = Math.round(level.bitrate / 1000);
-                select.innerHTML += `<option value="${index}">${height}p (${bitrate} kbps)</option>`;
-            });
-
-            select.disabled = false;
-        }
-
-        function changeHLSQuality() {
-            if (!hlsInstance) return;
-
-            const select = document.getElementById('hls-quality');
-            const level = parseInt(select.value);
-
-            if (level === -1) {
-                hlsInstance.currentLevel = -1;
-                updateStatus('hls-status', 'Quality set to Auto (adaptive bitrate)');
-            } else {
-                hlsInstance.currentLevel = level;
-                const selectedOption = select.options[select.selectedIndex].text;
-                updateStatus('hls-status', `Quality manually set to ${selectedOption}`);
-            }
-        }
-
         function loadHLS() {
             const video = document.getElementById('hls-video');
             const url = document.getElementById('hls-url').value.trim();
@@ -449,6 +379,7 @@
             showLoading('hls-loading', true);
 
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
                 video.src = url;
                 video.play().then(() => {
                     showLoading('hls-loading', false);
@@ -458,6 +389,7 @@
                     updateStatus('hls-status', 'Cannot play video: ' + err.message, true);
                 });
             } else if (Hls.isSupported()) {
+                // HLS.js for other browsers
                 if (hlsInstance) {
                     hlsInstance.destroy();
                 }
@@ -473,7 +405,6 @@
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                     showLoading('hls-loading', false);
                     updateStatus('hls-status', `Stream loaded successfully • ${data.levels.length} quality levels available`);
-                    populateHLSQualities(data.levels);
                     video.play();
                 });
 
@@ -486,51 +417,6 @@
             } else {
                 showLoading('hls-loading', false);
                 updateStatus('hls-status', 'HLS is not supported in this browser', true);
-            }
-        }
-
-        function populateDASHQualities(qualities) {
-            const select = document.getElementById('dash-quality');
-            select.innerHTML = '<option value="-1">Auto</option>';
-
-            qualities.sort((a, b) => a.height - b.height);
-
-            qualities.forEach((quality, index) => {
-                const height = quality.height;
-                const bitrate = Math.round(quality.bitrate / 1000);
-                select.innerHTML += `<option value="${index}">${height}p (${bitrate} kbps)</option>`;
-            });
-
-            select.disabled = false;
-        }
-
-        function changeDASHQuality() {
-            if (!dashPlayer) return;
-
-            const select = document.getElementById('dash-quality');
-            const level = parseInt(select.value);
-
-            if (level === -1) {
-                dashPlayer.updateSettings({
-                    streaming: {
-                        abr: {
-                            autoSwitchBitrate: { video: true }
-                        }
-                    }
-                });
-                updateStatus('dash-status', 'Quality set to Auto (adaptive bitrate)');
-            } else {
-                const qualities = dashPlayer.getBitrateInfoListFor('video');
-                dashPlayer.updateSettings({
-                    streaming: {
-                        abr: {
-                            autoSwitchBitrate: { video: false }
-                        }
-                    }
-                });
-                dashPlayer.setQualityFor('video', level);
-                const selectedOption = select.options[select.selectedIndex].text;
-                updateStatus('dash-status', `Quality manually set to ${selectedOption}`);
             }
         }
 
@@ -550,18 +436,38 @@
             }
 
             dashPlayer = dashjs.MediaPlayer().create();
+
+            // Configure for H.265/HEVC support
+            dashPlayer.updateSettings({
+                'streaming': {
+                    'abr': {
+                        'autoSwitchBitrate': {
+                            'video': true
+                        }
+                    },
+                    'buffer': {
+                        'fastSwitchEnabled': true
+                    }
+                }
+            });
+
             dashPlayer.initialize(video, url, true);
 
             dashPlayer.on('streamInitialized', function () {
                 const qualities = dashPlayer.getBitrateInfoListFor('video');
                 showLoading('dash-loading', false);
-                updateStatus('dash-status', `Stream loaded successfully • ${qualities.length} quality levels available`);
-                populateDASHQualities(qualities);
+                updateStatus('dash-status', `Stream loaded successfully (H.265) • ${qualities.length} quality levels available`);
             });
 
             dashPlayer.on('error', function (e) {
                 showLoading('dash-loading', false);
-                updateStatus('dash-status', e.error || 'Failed to load DASH stream', true);
+                console.error('DASH Error:', e);
+                updateStatus('dash-status', `Error: ${e.error || 'Failed to load DASH stream'}. Check browser console for details.`, true);
+            });
+
+            dashPlayer.on('playbackError', function (e) {
+                showLoading('dash-loading', false);
+                updateStatus('dash-status', 'Playback error - H.265 may not be supported on this browser/device', true);
             });
         }
 
